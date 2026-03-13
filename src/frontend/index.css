@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "DM Serif Display";
+  src: url("/assets/fonts/DMSerifDisplay.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    /* Teal-based medical palette */
+    --background: 0.98 0.004 180;
+    --foreground: 0.15 0.025 220;
+
+    --card: 1 0 0;
+    --card-foreground: 0.15 0.025 220;
+
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0.025 220;
+
+    /* Deep teal primary */
+    --primary: 0.42 0.12 195;
+    --primary-foreground: 0.98 0.005 180;
+
+    --secondary: 0.92 0.02 185;
+    --secondary-foreground: 0.30 0.05 200;
+
+    --muted: 0.94 0.01 180;
+    --muted-foreground: 0.52 0.025 200;
+
+    /* Teal accent */
+    --accent: 0.88 0.04 185;
+    --accent-foreground: 0.28 0.07 200;
+
+    --destructive: 0.52 0.18 22;
+    --destructive-foreground: 0.98 0 0;
+
+    --border: 0.88 0.015 195;
+    --input: 0.88 0.015 195;
+    --ring: 0.42 0.12 195;
+
+    --radius: 0.75rem;
+
+    --chart-1: 0.42 0.12 195;
+    --chart-2: 0.62 0.10 165;
+    --chart-3: 0.72 0.08 200;
+    --chart-4: 0.55 0.14 240;
+    --chart-5: 0.48 0.13 155;
+
+    --sidebar: 0.97 0.005 185;
+    --sidebar-foreground: 0.25 0.03 200;
+    --sidebar-primary: 0.42 0.12 195;
+    --sidebar-primary-foreground: 0.98 0.005 180;
+    --sidebar-accent: 0.90 0.025 185;
+    --sidebar-accent-foreground: 0.28 0.07 200;
+    --sidebar-border: 0.88 0.015 195;
+    --sidebar-ring: 0.42 0.12 195;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "DM Serif Display", Georgia, serif;
+  }
+  .font-body {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+
+  /* Leaflet map fix */
+  .leaflet-container {
+    z-index: 1;
+  }
+
+  .medical-gradient {
+    background: linear-gradient(
+      135deg,
+      oklch(0.42 0.12 195) 0%,
+      oklch(0.35 0.10 210) 50%,
+      oklch(0.28 0.08 230) 100%
+    );
+  }
+
+  .glass-card {
+    background: oklch(1 0 0 / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
