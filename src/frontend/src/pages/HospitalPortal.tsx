@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  ArrowLeft,
+  Building2,
   Edit2,
   Hospital,
   Info,
@@ -9,6 +11,7 @@ import {
   LogIn,
   LogOut,
   Package,
+  Plus,
   Stethoscope,
 } from "lucide-react";
 import { useState } from "react";
@@ -17,8 +20,7 @@ import HospitalForm from "../components/HospitalForm";
 import InventoryManager from "../components/InventoryManager";
 import TreatmentManager from "../components/TreatmentManager";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useGetAllHospitals } from "../hooks/useQueries";
-import { useGetHospitalDetails } from "../hooks/useQueries";
+import { useGetAllHospitals, useGetHospitalDetails } from "../hooks/useQueries";
 
 export default function HospitalPortal() {
   const { login, clear, loginStatus, identity, isInitializing } =
@@ -27,16 +29,23 @@ export default function HospitalPortal() {
   const principal = identity?.getPrincipal().toString();
 
   const [editMode, setEditMode] = useState(false);
+  const [registerMode, setRegisterMode] = useState(false);
+  const [selectedHospitalId, setSelectedHospitalId] = useState<bigint | null>(
+    null,
+  );
 
   const { data: allHospitals, isLoading: loadingHospitals } =
     useGetAllHospitals();
 
-  // Find hospital owned by this principal
-  const myHospital: HospitalType | null =
-    allHospitals?.find((h) => h.owner.toString() === principal) ?? null;
+  // All hospitals owned by this principal
+  const myHospitals: HospitalType[] =
+    allHospitals?.filter((h) => h.owner.toString() === principal) ?? [];
+
+  const selectedHospital =
+    myHospitals.find((h) => h.id === selectedHospitalId) ?? null;
 
   const { data: hospitalDetails, isLoading: loadingDetails } =
-    useGetHospitalDetails(myHospital?.id ?? null);
+    useGetHospitalDetails(selectedHospitalId);
 
   if (isInitializing) {
     return (
@@ -113,146 +122,244 @@ export default function HospitalPortal() {
         </div>
       )}
 
-      {/* No hospital registered yet */}
-      {!loadingHospitals && !myHospital && !editMode && (
-        <div className="text-center py-16 border-2 border-dashed border-teal-200 rounded-2xl bg-teal-50/50">
-          <Hospital className="w-12 h-12 text-teal-400 mx-auto mb-4" />
-          <h3 className="font-display text-xl text-foreground mb-2">
-            No Hospital Registered
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-            Register your hospital to appear in patient searches.
-          </p>
-          <Button
-            onClick={() => setEditMode(true)}
-            className="bg-teal-700 hover:bg-teal-800 text-white"
-            data-ocid="portal.register_button"
-          >
-            Register Your Hospital
-          </Button>
-        </div>
-      )}
-
-      {/* Registration / Edit form */}
-      {(!loadingHospitals && !myHospital && editMode) ||
-      (myHospital && editMode) ? (
-        <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-display text-xl">
-              {myHospital ? "Edit Hospital Profile" : "Register Your Hospital"}
+      {/* ── HOSPITAL LIST VIEW (no hospital selected) ── */}
+      {!loadingHospitals && selectedHospitalId === null && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-xl text-foreground">
+              My Hospitals
             </h3>
-            {myHospital && (
+            {!registerMode && (
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditMode(false)}
+                onClick={() => setRegisterMode(true)}
+                className="bg-teal-700 hover:bg-teal-800 text-white gap-2"
+                data-ocid="portal.register_new_button"
               >
-                Cancel
+                <Plus className="w-4 h-4" /> Register New Hospital
               </Button>
             )}
           </div>
-          <HospitalForm
-            existing={myHospital ?? undefined}
-            onSuccess={() => setEditMode(false)}
-          />
-        </div>
-      ) : null}
 
-      {/* Hospital dashboard */}
-      {myHospital && !editMode && (
-        <div className="space-y-6">
-          {/* Profile card */}
-          <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-display text-xl text-foreground">
-                  {myHospital.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {myHospital.address.street}, {myHospital.address.city},{" "}
-                  {myHospital.address.state} {myHospital.address.zip},{" "}
-                  {myHospital.address.country}
-                </p>
-                {myHospital.phone && (
-                  <p className="text-sm text-muted-foreground">
-                    📞 {myHospital.phone}
-                  </p>
-                )}
-                {myHospital.email && (
-                  <p className="text-sm text-muted-foreground">
-                    ✉️ {myHospital.email}
-                  </p>
-                )}
-                {myHospital.description && (
-                  <p className="text-sm text-foreground mt-3 leading-relaxed">
-                    {myHospital.description}
-                  </p>
-                )}
+          {/* Registration form */}
+          {registerMode && (
+            <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-display text-xl">Register New Hospital</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRegisterMode(false)}
+                  data-ocid="portal.register.cancel_button"
+                >
+                  Cancel
+                </Button>
               </div>
+              <HospitalForm onSuccess={() => setRegisterMode(false)} />
+            </div>
+          )}
+
+          {/* Hospital list */}
+          {myHospitals.length > 0 ? (
+            <div className="grid gap-4">
+              {myHospitals.map((hospital, index) => (
+                <div
+                  key={hospital.id.toString()}
+                  className="bg-white rounded-2xl border border-border p-5 shadow-xs flex items-center justify-between gap-4"
+                  data-ocid={`portal.hospital_card.${index + 1}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-teal-700" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {hospital.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {hospital.address.street}, {hospital.address.city},{" "}
+                        {hospital.address.state}
+                      </p>
+                      {hospital.phone && (
+                        <p className="text-sm text-muted-foreground">
+                          📞 {hospital.phone}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedHospitalId(hospital.id);
+                      setEditMode(false);
+                    }}
+                    className="gap-2 border-teal-200 text-teal-700 hover:bg-teal-50 shrink-0"
+                    data-ocid={`portal.hospital_manage_button.${index + 1}`}
+                  >
+                    Manage
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : !registerMode ? (
+            <div
+              className="text-center py-16 border-2 border-dashed border-teal-200 rounded-2xl bg-teal-50/50"
+              data-ocid="portal.empty_state"
+            >
+              <Hospital className="w-12 h-12 text-teal-400 mx-auto mb-4" />
+              <h3 className="font-display text-xl text-foreground mb-2">
+                No Hospital Registered
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Register your hospital to appear in patient searches.
+              </p>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditMode(true)}
-                className="gap-2 border-teal-200 text-teal-700 hover:bg-teal-50 shrink-0 ml-4"
-                data-ocid="portal.edit_button"
+                onClick={() => setRegisterMode(true)}
+                className="bg-teal-700 hover:bg-teal-800 text-white"
+                data-ocid="portal.register_button"
               >
-                <Edit2 className="w-3.5 h-3.5" /> Edit
+                Register Your Hospital
               </Button>
             </div>
+          ) : null}
+        </div>
+      )}
 
-            <div className="mt-4 flex gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Info className="w-3.5 h-3.5" />
-                Lat: {myHospital.latitude.toFixed(4)}, Lng:{" "}
-                {myHospital.longitude.toFixed(4)}
-              </span>
+      {/* ── HOSPITAL DETAIL VIEW (hospital selected) ── */}
+      {!loadingHospitals && selectedHospitalId !== null && selectedHospital && (
+        <div className="space-y-6">
+          {/* Back button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedHospitalId(null);
+              setEditMode(false);
+            }}
+            className="gap-2 text-teal-700 hover:bg-teal-50 -ml-2"
+            data-ocid="portal.back_button"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to My Hospitals
+          </Button>
+
+          {/* Edit form */}
+          {editMode && (
+            <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-display text-xl">Edit Hospital Profile</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditMode(false)}
+                  data-ocid="portal.edit.cancel_button"
+                >
+                  Cancel
+                </Button>
+              </div>
+              <HospitalForm
+                existing={selectedHospital}
+                onSuccess={() => setEditMode(false)}
+              />
             </div>
-          </div>
+          )}
+
+          {/* Profile card */}
+          {!editMode && (
+            <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-display text-xl text-foreground">
+                    {selectedHospital.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {selectedHospital.address.street},{" "}
+                    {selectedHospital.address.city},{" "}
+                    {selectedHospital.address.state}{" "}
+                    {selectedHospital.address.zip},{" "}
+                    {selectedHospital.address.country}
+                  </p>
+                  {selectedHospital.phone && (
+                    <p className="text-sm text-muted-foreground">
+                      📞 {selectedHospital.phone}
+                    </p>
+                  )}
+                  {selectedHospital.email && (
+                    <p className="text-sm text-muted-foreground">
+                      ✉️ {selectedHospital.email}
+                    </p>
+                  )}
+                  {selectedHospital.description && (
+                    <p className="text-sm text-foreground mt-3 leading-relaxed">
+                      {selectedHospital.description}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditMode(true)}
+                  className="gap-2 border-teal-200 text-teal-700 hover:bg-teal-50 shrink-0 ml-4"
+                  data-ocid="portal.edit_button"
+                >
+                  <Edit2 className="w-3.5 h-3.5" /> Edit
+                </Button>
+              </div>
+
+              <div className="mt-4 flex gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5" />
+                  Lat: {selectedHospital.latitude.toFixed(4)}, Lng:{" "}
+                  {selectedHospital.longitude.toFixed(4)}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Inventory & Treatments tabs */}
-          {loadingDetails ? (
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-40 w-full" />
-            </div>
-          ) : hospitalDetails ? (
-            <Tabs defaultValue="inventory" className="w-full">
-              <TabsList className="w-full mb-4">
-                <TabsTrigger
-                  value="inventory"
-                  className="flex-1 gap-2"
-                  data-ocid="portal.inventory.tab"
-                >
-                  <Package className="w-4 h-4" />
-                  Inventory ({hospitalDetails.inventory.length})
-                </TabsTrigger>
-                <TabsTrigger
-                  value="treatments"
-                  className="flex-1 gap-2"
-                  data-ocid="portal.treatments.tab"
-                >
-                  <Stethoscope className="w-4 h-4" />
-                  Treatments ({hospitalDetails.treatments.length})
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="inventory">
-                <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
-                  <InventoryManager
-                    hospitalId={myHospital.id}
-                    items={hospitalDetails.inventory}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="treatments">
-                <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
-                  <TreatmentManager
-                    hospitalId={myHospital.id}
-                    treatments={hospitalDetails.treatments}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
-          ) : null}
+          {!editMode &&
+            (loadingDetails ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-40 w-full" />
+              </div>
+            ) : hospitalDetails ? (
+              <Tabs defaultValue="inventory" className="w-full">
+                <TabsList className="w-full mb-4">
+                  <TabsTrigger
+                    value="inventory"
+                    className="flex-1 gap-2"
+                    data-ocid="portal.inventory.tab"
+                  >
+                    <Package className="w-4 h-4" />
+                    Inventory ({hospitalDetails.inventory.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="treatments"
+                    className="flex-1 gap-2"
+                    data-ocid="portal.treatments.tab"
+                  >
+                    <Stethoscope className="w-4 h-4" />
+                    Treatments ({hospitalDetails.treatments.length})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="inventory">
+                  <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
+                    <InventoryManager
+                      hospitalId={selectedHospital.id}
+                      items={hospitalDetails.inventory}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="treatments">
+                  <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
+                    <TreatmentManager
+                      hospitalId={selectedHospital.id}
+                      treatments={hospitalDetails.treatments}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            ) : null)}
         </div>
       )}
     </div>
