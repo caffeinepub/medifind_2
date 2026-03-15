@@ -73,6 +73,7 @@ export interface backendInterface {
     removeTreatment(treatmentId: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchHospitals(keyword: string): Promise<Array<SearchResult>>;
+    seedDemoHospitals(): Promise<void>;
     updateHospital(hospitalId: bigint, name: string, address: Address, latitude: number, longitude: number, phone: string, email: string, description: string): Promise<void>;
     updateInventoryItem(itemId: bigint, name: string, category: string, available: boolean, quantity: bigint, unit: string): Promise<void>;
     updateTreatment(treatmentId: bigint, conditionName: string, treatmentName: string, description: string): Promise<void>;

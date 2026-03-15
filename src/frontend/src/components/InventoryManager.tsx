@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Check, Edit2, Loader2, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { InventoryItem } from "../backend.d";
 import {
@@ -30,6 +30,8 @@ import {
 interface InventoryManagerProps {
   hospitalId: bigint;
   items: InventoryItem[];
+  categoryFilter?: string;
+  defaultCategory?: string;
 }
 
 interface ItemForm {
@@ -51,6 +53,8 @@ const DEFAULT_FORM: ItemForm = {
 export default function InventoryManager({
   hospitalId,
   items,
+  categoryFilter,
+  defaultCategory,
 }: InventoryManagerProps) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
@@ -61,9 +65,16 @@ export default function InventoryManager({
   const update = useUpdateInventoryItem(hospitalId);
   const remove = useRemoveInventoryItem(hospitalId);
 
+  // Filter items by category if categoryFilter is provided
+  const filteredItems = categoryFilter
+    ? items.filter(
+        (item) => item.category.toLowerCase() === categoryFilter.toLowerCase(),
+      )
+    : items;
+
   const openAdd = () => {
     setEditItem(null);
-    setForm(DEFAULT_FORM);
+    setForm({ ...DEFAULT_FORM, category: defaultCategory ?? "" });
     setOpen(true);
   };
   const openEdit = (item: InventoryItem) => {
@@ -77,6 +88,13 @@ export default function InventoryManager({
     });
     setOpen(true);
   };
+
+  // Keep category in sync when dialog opens with defaultCategory
+  useEffect(() => {
+    if (open && !editItem && defaultCategory) {
+      setForm((f) => ({ ...f, category: defaultCategory }));
+    }
+  }, [open, editItem, defaultCategory]);
 
   const handleSave = async () => {
     const data = {
@@ -111,11 +129,14 @@ export default function InventoryManager({
   };
 
   const isPending = add.isPending || update.isPending;
+  const isCategoryLocked = !!defaultCategory;
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-foreground">Inventory Items</h3>
+        <h3 className="font-semibold text-foreground">
+          {categoryFilter ? `${categoryFilter} Items` : "Inventory Items"}
+        </h3>
         <Button
           size="sm"
           onClick={openAdd}
@@ -126,9 +147,13 @@ export default function InventoryManager({
         </Button>
       </div>
 
-      {items.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground bg-gray-50 rounded-xl">
-          No inventory items yet. Add your first item.
+      {filteredItems.length === 0 ? (
+        <div
+          className="text-center py-12 text-muted-foreground bg-gray-50 rounded-xl"
+          data-ocid="inventory.empty_state"
+        >
+          No {categoryFilter?.toLowerCase() ?? "inventory"} items yet. Add your
+          first item.
         </div>
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
@@ -136,7 +161,7 @@ export default function InventoryManager({
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
+                {!categoryFilter && <TableHead>Category</TableHead>}
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Available</TableHead>
@@ -144,7 +169,7 @@ export default function InventoryManager({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item, idx) => {
+              {filteredItems.map((item, idx) => {
                 const ocid = idx < 3 ? idx + 1 : 3;
                 return (
                   <TableRow
@@ -152,9 +177,11 @@ export default function InventoryManager({
                     data-ocid={`inventory.item.${ocid}`}
                   >
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {item.category}
-                    </TableCell>
+                    {!categoryFilter && (
+                      <TableCell className="text-muted-foreground">
+                        {item.category}
+                      </TableCell>
+                    )}
                     <TableCell>{item.quantity.toString()}</TableCell>
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>
@@ -200,7 +227,9 @@ export default function InventoryManager({
         <DialogContent data-ocid="inventory.dialog">
           <DialogHeader>
             <DialogTitle>
-              {editItem ? "Edit Item" : "Add Inventory Item"}
+              {editItem
+                ? "Edit Item"
+                : `Add ${defaultCategory ?? "Inventory"} Item`}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
@@ -211,18 +240,32 @@ export default function InventoryManager({
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
-                placeholder="e.g. Paracetamol"
+                placeholder={
+                  categoryFilter === "Blood Type"
+                    ? "e.g. A+"
+                    : categoryFilter === "Organ"
+                      ? "e.g. Kidney"
+                      : "e.g. Paracetamol"
+                }
               />
             </div>
             <div className="grid gap-1.5">
               <Label>Category</Label>
-              <Input
-                value={form.category}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, category: e.target.value }))
-                }
-                placeholder="e.g. Medication"
-              />
+              {isCategoryLocked ? (
+                <Input
+                  value={form.category}
+                  disabled
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
+                />
+              ) : (
+                <Input
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, category: e.target.value }))
+                  }
+                  placeholder="e.g. Medication"
+                />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
@@ -243,7 +286,11 @@ export default function InventoryManager({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, unit: e.target.value }))
                   }
-                  placeholder="e.g. boxes"
+                  placeholder={
+                    categoryFilter === "Blood Type"
+                      ? "e.g. units"
+                      : "e.g. boxes"
+                  }
                 />
               </div>
             </div>

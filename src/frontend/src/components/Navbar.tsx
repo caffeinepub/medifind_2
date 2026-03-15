@@ -15,13 +15,16 @@ export default function Navbar({ currentPage, navigate }: NavbarProps) {
           type="button"
           onClick={() => navigate("home")}
           className="flex items-center gap-2.5 group"
-          aria-label="MediFind home"
+          aria-label="MediFind and Care home"
         >
-          <div className="w-8 h-8 rounded-lg medical-gradient flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M+</span>
-          </div>
+          <img
+            src="/assets/generated/medifind-logo-transparent.dim_512x512.png"
+            alt="MediFind and Care logo"
+            className="w-9 h-9 rounded-xl object-contain"
+          />
           <span className="font-display text-xl text-teal-700 tracking-tight">
-            MediFind
+            MediFind{" "}
+            <span className="text-teal-500 font-normal text-base">& Care</span>
           </span>
         </button>
 

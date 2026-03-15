@@ -3,24 +3,82 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
+  Bed,
   Building2,
+  Cpu,
+  Droplet,
   Edit2,
+  FlaskConical,
+  HeartHandshake,
   Hospital,
   Info,
   Loader2,
   LogIn,
   LogOut,
   Package,
+  Pill,
   Plus,
-  Stethoscope,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useState } from "react";
 import type { Hospital as HospitalType } from "../backend.d";
+import BloodBankManager from "../components/BloodBankManager";
 import HospitalForm from "../components/HospitalForm";
 import InventoryManager from "../components/InventoryManager";
-import TreatmentManager from "../components/TreatmentManager";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useGetAllHospitals, useGetHospitalDetails } from "../hooks/useQueries";
+
+const INVENTORY_TABS = [
+  {
+    value: "pharmaceutical",
+    label: "Pharmaceutical Inventory",
+    category: "Pharmaceutical Inventory",
+    icon: Pill,
+    ocid: "portal.pharmaceutical.tab",
+  },
+  {
+    value: "organ-tissue",
+    label: "Organ & Tissue Bank",
+    category: "Organ & Tissue Bank",
+    icon: HeartHandshake,
+    ocid: "portal.organ-tissue.tab",
+  },
+  {
+    value: "medical-supplies",
+    label: "Medical Supplies & Consumables",
+    category: "Medical Supplies & Consumables",
+    icon: Package,
+    ocid: "portal.medical-supplies.tab",
+  },
+  {
+    value: "equipment",
+    label: "Equipment Inventory",
+    category: "Equipment Inventory",
+    icon: Cpu,
+    ocid: "portal.equipment.tab",
+  },
+  {
+    value: "lab-diagnostic",
+    label: "Lab & Diagnostic Supplies",
+    category: "Lab & Diagnostic Supplies",
+    icon: FlaskConical,
+    ocid: "portal.lab-diagnostic.tab",
+  },
+  {
+    value: "dietary",
+    label: "Dietary & Nutrition Inventory",
+    category: "Dietary & Nutrition Inventory",
+    icon: UtensilsCrossed,
+    ocid: "portal.dietary.tab",
+  },
+  {
+    value: "linen",
+    label: "Linen & Housekeeping",
+    category: "Linen & Housekeeping",
+    icon: Bed,
+    ocid: "portal.linen.tab",
+  },
+] as const;
 
 export default function HospitalPortal() {
   const { login, clear, loginStatus, identity, isInitializing } =
@@ -37,7 +95,6 @@ export default function HospitalPortal() {
   const { data: allHospitals, isLoading: loadingHospitals } =
     useGetAllHospitals();
 
-  // All hospitals owned by this principal
   const myHospitals: HospitalType[] =
     allHospitals?.filter((h) => h.owner.toString() === principal) ?? [];
 
@@ -114,7 +171,7 @@ export default function HospitalPortal() {
         </Button>
       </div>
 
-      {/* Loading hospital */}
+      {/* Loading */}
       {loadingHospitals && (
         <div className="space-y-4" data-ocid="portal.loading_state">
           <Skeleton className="h-8 w-64" />
@@ -122,10 +179,10 @@ export default function HospitalPortal() {
         </div>
       )}
 
-      {/* ── HOSPITAL LIST VIEW (no hospital selected) ── */}
+      {/* HOSPITAL LIST VIEW */}
       {!loadingHospitals && selectedHospitalId === null && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <h3 className="font-display text-xl text-foreground">
               My Hospitals
             </h3>
@@ -225,10 +282,9 @@ export default function HospitalPortal() {
         </div>
       )}
 
-      {/* ── HOSPITAL DETAIL VIEW (hospital selected) ── */}
+      {/* HOSPITAL DETAIL VIEW */}
       {!loadingHospitals && selectedHospitalId !== null && selectedHospital && (
         <div className="space-y-6">
-          {/* Back button */}
           <Button
             variant="ghost"
             size="sm"
@@ -242,7 +298,6 @@ export default function HospitalPortal() {
             <ArrowLeft className="w-4 h-4" /> Back to My Hospitals
           </Button>
 
-          {/* Edit form */}
           {editMode && (
             <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
               <div className="flex items-center justify-between mb-6">
@@ -263,7 +318,6 @@ export default function HospitalPortal() {
             </div>
           )}
 
-          {/* Profile card */}
           {!editMode && (
             <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
               <div className="flex items-start justify-between">
@@ -304,7 +358,6 @@ export default function HospitalPortal() {
                   <Edit2 className="w-3.5 h-3.5" /> Edit
                 </Button>
               </div>
-
               <div className="mt-4 flex gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Info className="w-3.5 h-3.5" />
@@ -315,7 +368,6 @@ export default function HospitalPortal() {
             </div>
           )}
 
-          {/* Inventory & Treatments tabs */}
           {!editMode &&
             (loadingDetails ? (
               <div className="space-y-3">
@@ -323,38 +375,64 @@ export default function HospitalPortal() {
                 <Skeleton className="h-40 w-full" />
               </div>
             ) : hospitalDetails ? (
-              <Tabs defaultValue="inventory" className="w-full">
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger
-                    value="inventory"
-                    className="flex-1 gap-2"
-                    data-ocid="portal.inventory.tab"
-                  >
-                    <Package className="w-4 h-4" />
-                    Inventory ({hospitalDetails.inventory.length})
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="treatments"
-                    className="flex-1 gap-2"
-                    data-ocid="portal.treatments.tab"
-                  >
-                    <Stethoscope className="w-4 h-4" />
-                    Treatments ({hospitalDetails.treatments.length})
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="inventory">
-                  <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
-                    <InventoryManager
+              <Tabs defaultValue="pharmaceutical" className="w-full">
+                <div className="overflow-x-auto pb-1">
+                  <TabsList className="flex flex-nowrap w-max min-w-full h-auto p-1 gap-1">
+                    {INVENTORY_TABS.map((tab) => {
+                      const Icon = tab.icon;
+                      const count = hospitalDetails.inventory.filter(
+                        (i) =>
+                          i.category.toLowerCase() ===
+                          tab.category.toLowerCase(),
+                      ).length;
+                      return (
+                        <TabsTrigger
+                          key={tab.value}
+                          value={tab.value}
+                          className="gap-1.5 flex-row py-2 px-3 whitespace-nowrap text-sm"
+                          data-ocid={tab.ocid}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span>{tab.label}</span>
+                          <span className="text-xs opacity-60">({count})</span>
+                        </TabsTrigger>
+                      );
+                    })}
+                    <TabsTrigger
+                      value="bloodbank"
+                      className="gap-1.5 flex-row py-2 px-3 whitespace-nowrap text-sm"
+                      data-ocid="portal.bloodbank.tab"
+                    >
+                      <Droplet className="w-4 h-4 shrink-0" />
+                      <span>Blood Bank</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                {INVENTORY_TABS.map((tab) => (
+                  <TabsContent key={tab.value} value={tab.value}>
+                    <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
+                      <InventoryManager
+                        hospitalId={selectedHospital.id}
+                        items={hospitalDetails.inventory}
+                        categoryFilter={tab.category}
+                        defaultCategory={tab.category}
+                      />
+                    </div>
+                  </TabsContent>
+                ))}
+
+                <TabsContent value="bloodbank">
+                  <div className="bg-white rounded-2xl border border-red-100 p-6 shadow-xs">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Droplet className="w-5 h-5 text-red-500" />
+                      <h3 className="font-display text-lg text-foreground">
+                        Blood Bank
+                      </h3>
+                    </div>
+                    <BloodBankManager
                       hospitalId={selectedHospital.id}
                       items={hospitalDetails.inventory}
-                    />
-                  </div>
-                </TabsContent>
-                <TabsContent value="treatments">
-                  <div className="bg-white rounded-2xl border border-border p-6 shadow-xs">
-                    <TreatmentManager
-                      hospitalId={selectedHospital.id}
-                      treatments={hospitalDetails.treatments}
                     />
                   </div>
                 </TabsContent>
